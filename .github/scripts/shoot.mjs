@@ -7,32 +7,20 @@ const outDir = process.argv[2] || 'screenshots';
 fs.mkdirSync(outDir, { recursive: true });
 const url = process.env.PREVIEW_URL || 'http://localhost:8080/index.html';
 const log = [];
-const browser = await chromium.launch();
+const browser = await chromium.launch({
+  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist']
+});
 
 async function open(name, viewport, mobile) {
   const ctx = await browser.newContext({ viewport, deviceScaleFactor: mobile ? 2 : 1, isMobile: mobile, hasTouch: mobile });
   const page = await ctx.newPage();
-  page.on('console', (m) => log.push(`[${name}] ${m.type()}: ${m.text()}`));
+  page.on('console', (m) => { if (!/GL Driver/.test(m.text())) log.push(`[${name}] ${m.type()}: ${m.text()}`); });
   page.on('pageerror', (e) => log.push(`[${name}] pageerror: ${e.message}`));
   try { await page.goto(url, { waitUntil: 'networkidle', timeout: 45000 }); } catch (e) { log.push(`[${name}] goto: ${e.message}`); }
   await page.waitForTimeout(7000);
   return { ctx, page };
 }
 const shot = (page, n) => page.screenshot({ path: path.join(outDir, `${n}.png`) });
-
-async function debugGraphics(page, tag) {
-  try {
-    const info = await page.evaluate(() => new Promise((resolve) => {
-      window.require(['esri/views/View'], (View) => {
-        const v = View.views && View.views.getItemAt(0);
-        if (!v) return resolve('no view');
-        const g = v.graphics.toArray().map((x) => ({ geom: x.geometry && x.geometry.toJSON(), sym: x.symbol && x.symbol.type, visible: x.visible }));
-        resolve(JSON.stringify({ ready: v.ready, updating: v.updating, sr: v.spatialReference.wkid, center: v.center.toJSON(), n: v.graphics.length, g }));
-      });
-    }));
-    log.push(`[debug ${tag}] ${info}`);
-  } catch (e) { log.push(`[debug ${tag}] error ${e.message}`); }
-}
 
 // Desktop flow
 {
@@ -41,9 +29,12 @@ async function debugGraphics(page, tag) {
   try {
     const box = await page.locator('#map').boundingBox();
     await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
-    await page.waitForTimeout(6000);
-    await debugGraphics(page, 'after-click');
+    await page.waitForTimeout(5000);
     await shot(page, 'desktop-2-pin');
+    await page.mouse.move(box.x + box.width / 2 + 100, box.y + 200);
+    await page.mouse.wheel(0, -300);
+    await page.waitForTimeout(5000);
+    await shot(page, 'desktop-2b-pin-zoom');
     await page.click('#to-2');
     await page.waitForTimeout(600);
     await page.click('.tile >> nth=0');
