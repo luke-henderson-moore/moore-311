@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Signing in…</title>
+  <style>body{font-family:Roboto,system-ui,Arial,sans-serif;color:#5f6368;display:grid;place-content:center;height:100vh;margin:0}</style>
+</head>
+<body>
+  <p>Signing you in&hellip; you can close this window.</p>
+  <script>
+    // Hands the ArcGIS Online OAuth result back to the 311 app window.
+    (function () {
+      var opener = window.opener;
+      if (!opener) { location.replace("./"); return; }
+      if (location.hash) {
+        if (typeof opener.require === "function" && opener.require("esri/kernel")) {
+          opener.require("esri/kernel").id.setOAuthResponseHash(location.hash);
+        } else {
+          opener.dispatchEvent(new CustomEvent("arcgis:auth:hash", { detail: location.hash }));
+        }
+        window.close();
+      } else if (location.search) {
+        opener.dispatchEvent(new CustomEvent("arcgis:auth:location:search", { detail: location.search }));
+        window.close();
+      }
+    })();
+  </script>
+</body>
+</html>

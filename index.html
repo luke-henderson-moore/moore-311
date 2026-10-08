@@ -30,6 +30,12 @@
       <button id="my-reports-btn" class="btn-text" type="button">
         My reports <span class="count-badge" id="my-count" hidden></span>
       </button>
+      <button id="signin-btn" class="btn-outline" type="button" hidden>Sign in</button>
+      <div class="user-chip" id="user-chip" hidden>
+        <span class="avatar" id="user-initial" aria-hidden="true"></span>
+        <span class="user-name" id="user-name"></span>
+        <button id="signout-btn" class="btn-text small" type="button">Sign out</button>
+      </div>
     </div>
   </header>
 
@@ -131,6 +137,7 @@
             <input id="f-website" type="text" tabindex="-1" autocomplete="off" />
           </div>
 
+          <p class="auth-note" id="auth-note" hidden></p>
           <div class="actions">
             <button type="submit" class="btn-primary" id="submit-btn">Submit report</button>
           </div>

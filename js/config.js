@@ -7,6 +7,15 @@ window.APP_CONFIG = {
   reportsLayerUrl:
     "https://services.arcgis.com/unxYrwb3eK5uevNZ/arcgis/rest/services/Moore%20311%20-%20Public%20Reports%20%28GIS%20App%20Builder%29/FeatureServer/0",
 
+  // ArcGIS Online organization used for sign-in. Reports are sent with the signed-in user's account.
+  portalUrl: "https://mooreengineering.maps.arcgis.com",
+
+  // OPTIONAL but recommended: ArcGIS OAuth Client ID (App ID).
+  // Blank = the built-in ArcGIS username/password dialog is used (ArcGIS logins only).
+  // Add a Client ID (redirect URIs: this site's URL + /oauth-callback.html) to get the
+  // ArcGIS Online sign-in page in a popup, including your organization's SSO / Microsoft login.
+  oauthAppId: "",
+
   // Optional ArcGIS location-services API key (basemap + geocoding). Leave blank to use anonymous access.
   apiKey: "",
 

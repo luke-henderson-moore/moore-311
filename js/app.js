@@ -1,6 +1,6 @@
 /* Moore 311 — public road problem reporting.
  * Map: ArcGIS Maps SDK for JavaScript 4.30.
- * Storage: ArcGIS Online hosted feature layer (anonymous addFeatures via REST).
+ * Storage: ArcGIS Online hosted feature layer (addFeatures with the user's ArcGIS Online sign-in).
  */
 (function () {
   "use strict";
@@ -10,7 +10,14 @@
   var LAST_KEY = "moore311.lastSubmit";
 
   var $ = function (id) { return document.getElementById(id); };
-  var state = { step: 1, point: null, address: "", category: null, fields: null, serviceOk: null, geocodeSeq: 0 };
+  var state = {
+    step: 1, point: null, address: "", category: null, fields: null, geocodeSeq: 0,
+    serviceOk: null,      // false = layer can't accept reports (editing off / no access)
+    authRequired: false,  // true = layer needs an ArcGIS Online sign-in
+    user: null            // { username, fullName, email } when signed in
+  };
+  var esriRequest = null; // set once the ArcGIS SDK loads (attaches tokens automatically)
+  var auth = { signIn: null, signOut: null };
 
   // ---------- Icons for categories (stroke SVGs) ----------
   var ICONS = {
@@ -75,30 +82,93 @@
     } catch (e) { return iso; }
   }
 
-  // ---------- Service check (no sign-in prompts for the public) ----------
+  // ---------- Service check ----------
+  var MSG_CLOSED = "Online reporting isn't open yet. You can still look around the map, but reports can't be sent right now.";
+  var MSG_NO_ACCESS = "Your ArcGIS account doesn't have access to the reports layer. Ask the Moore GIS team to share it with you.";
+
+  function applyServiceInfo(info) {
+    state.fields = {};
+    (info.fields || []).forEach(function (f) { state.fields[f.name.toLowerCase()] = f; });
+    var caps = (info.capabilities || "").toLowerCase();
+    state.serviceOk = caps.indexOf("create") !== -1;
+    if (!state.serviceOk) {
+      console.warn("Reports layer does not allow Create. Capabilities:", info.capabilities);
+      banner(MSG_CLOSED);
+    } else {
+      banner("");
+    }
+  }
+
+  // Anonymous check on load — never pops a sign-in window.
   function checkService() {
     return fetch(CFG.reportsLayerUrl + "?f=json")
       .then(function (r) { return r.json(); })
       .then(function (info) {
         if (info.error) {
-          console.warn("Reports layer not reachable anonymously:", info.error);
-          state.serviceOk = false;
-          banner("Online reporting isn't open yet. You can still look around the map, but reports can't be sent right now.");
-          return;
+          var code = info.error.code;
+          if (code === 499 || code === 498 || code === 403 || code === 401) {
+            state.authRequired = true; // layer is secured: sign-in needed to send
+          } else {
+            console.warn("Reports layer error:", info.error);
+            state.serviceOk = false;
+            banner(MSG_CLOSED);
+          }
+        } else {
+          applyServiceInfo(info);
         }
-        state.fields = {};
-        (info.fields || []).forEach(function (f) { state.fields[f.name.toLowerCase()] = f; });
-        var caps = (info.capabilities || "").toLowerCase();
-        state.serviceOk = caps.indexOf("create") !== -1;
-        if (!state.serviceOk) {
-          console.warn("Reports layer does not allow Create. Capabilities:", info.capabilities);
-          banner("Online reporting isn't open yet. You can still look around the map, but reports can't be sent right now.");
-        }
+        updateAuthUI();
       })
       .catch(function (e) {
         console.warn("Service check failed", e);
         state.serviceOk = null; // unknown; we'll try on submit
       });
+  }
+
+  // Signed-in check: reads the layer with the user's token.
+  function checkServiceSignedIn() {
+    if (!esriRequest) return Promise.resolve();
+    return esriRequest(CFG.reportsLayerUrl, { query: { f: "json" }, responseType: "json" })
+      .then(function (res) { applyServiceInfo(res.data); })
+      .catch(function (err) {
+        console.warn("Signed-in service check failed", err);
+        state.serviceOk = false;
+        banner(isPermissionError(err) ? MSG_NO_ACCESS : MSG_CLOSED);
+      });
+  }
+
+  function isPermissionError(err) {
+    var d = (err && err.details) || {};
+    var code = d.httpStatus || (d.raw && d.raw.code) || (err && err.code);
+    var msg = String((err && err.message) || "") + " " + String((d.raw && d.raw.message) || "");
+    return code === 403 || code === 498 || code === 499 || /permission|not authorized|access/i.test(msg);
+  }
+
+  // ---------- Sign-in UI ----------
+  function updateAuthUI() {
+    var signedIn = !!state.user;
+    $("signin-btn").hidden = signedIn || !state.authRequired;
+    $("user-chip").hidden = !signedIn;
+    if (signedIn) {
+      var name = state.user.fullName || state.user.username;
+      $("user-name").textContent = name;
+      $("user-initial").textContent = (name || "?").trim().charAt(0).toUpperCase();
+      $("user-chip").title = "Signed in as " + state.user.username;
+    }
+    var note = $("auth-note");
+    if (state.authRequired && !signedIn) {
+      note.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1a5 5 0 0 1 5 5v3h1a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V11a2 2 0 0 1 2-2h1V6a5 5 0 0 1 5-5zm0 2a3 3 0 0 0-3 3v3h6V6a3 3 0 0 0-3-3z"/></svg>' +
+        "<span>You\u2019ll be asked to sign in with your ArcGIS Online account to send this report.</span>";
+      note.hidden = false;
+      $("submit-btn").textContent = "Sign in and submit";
+    } else if (signedIn) {
+      note.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0 2c-4.4 0-8 2.2-8 5v3h16v-3c0-2.8-3.6-5-8-5z"/></svg>' +
+        "<span>Sending as <b>" + esc(state.user.fullName || state.user.username) + "</b> (" + esc(state.user.username) + ")</span>";
+      note.hidden = false;
+      $("submit-btn").textContent = "Submit report";
+    } else {
+      note.hidden = true;
+      $("submit-btn").textContent = "Submit report";
+    }
   }
 
   // Build attributes that match the layer's actual fields (names + types + lengths).
@@ -129,17 +199,14 @@
       geometry: { x: state.point.longitude, y: state.point.latitude, spatialReference: { wkid: 4326 } },
       attributes: buildAttributes(values)
     };
-    var body = new URLSearchParams();
-    body.set("f", "json");
-    body.set("features", JSON.stringify([feature]));
-    body.set("rollbackOnFailure", "true");
-    return fetch(CFG.reportsLayerUrl + "/addFeatures", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: body.toString()
+    // esri/request adds the signed-in user's token and handles token refresh.
+    return esriRequest(CFG.reportsLayerUrl + "/addFeatures", {
+      method: "post",
+      responseType: "json",
+      query: { f: "json", features: JSON.stringify([feature]), rollbackOnFailure: true }
     })
-      .then(function (r) { return r.json(); })
-      .then(function (res) {
+      .then(function (r) {
+        var res = r.data || {};
         if (res.error) throw Object.assign(new Error(res.error.message || "Service error"), { code: res.error.code });
         var r0 = res.addResults && res.addResults[0];
         if (!r0 || !r0.success) throw new Error((r0 && r0.error && r0.error.description) || "The report was not saved.");
@@ -246,6 +313,12 @@
     goto("mine");
   });
   $("mine-back").addEventListener("click", function () { goto(returnStep === "done" ? 1 : returnStep); });
+  $("signin-btn").addEventListener("click", function () {
+    if (!auth.signIn) return;
+    auth.signIn().then(function () { toast("Signed in as " + state.user.username); })
+      .catch(function (e) { console.warn("Sign-in cancelled", e); });
+  });
+  $("signout-btn").addEventListener("click", function () { if (auth.signOut) auth.signOut(); });
 
   // ---------- Map ----------
   require([
@@ -256,9 +329,58 @@
     "esri/geometry/Point",
     "esri/geometry/Extent",
     "esri/widgets/Search",
-    "esri/rest/locator"
-  ], function (esriConfig, Map, MapView, Graphic, Point, Extent, Search, locator) {
+    "esri/rest/locator",
+    "esri/request",
+    "esri/identity/IdentityManager",
+    "esri/identity/OAuthInfo",
+    "esri/portal/Portal"
+  ], function (esriConfig, Map, MapView, Graphic, Point, Extent, Search, locator, request, esriId, OAuthInfo, Portal) {
     if (CFG.apiKey) esriConfig.apiKey = CFG.apiKey;
+    esriRequest = request;
+
+    // ---------- ArcGIS Online sign-in ----------
+    var SHARING = CFG.portalUrl.replace(/\/$/, "") + "/sharing";
+    if (CFG.oauthAppId) {
+      // OAuth (supports org SSO). Popup keeps the half-filled form intact.
+      esriId.registerOAuthInfos([new OAuthInfo({
+        appId: CFG.oauthAppId,
+        portalUrl: CFG.portalUrl,
+        popup: true,
+        popupCallbackUrl: new URL("oauth-callback.html", location.href).href
+      })]);
+    }
+
+    function loadUser() {
+      var portal = new Portal({ url: CFG.portalUrl, authMode: "immediate" });
+      return portal.load().then(function () {
+        var u = portal.user || {};
+        state.user = { username: u.username, fullName: u.fullName, email: u.email };
+        if (!$("f-name").value && u.fullName) $("f-name").value = u.fullName;
+        if (!$("f-email").value && u.email) $("f-email").value = u.email;
+        updateAuthUI();
+        return checkServiceSignedIn();
+      });
+    }
+
+    auth.signIn = function () {
+      return esriId.getCredential(SHARING, { oAuthPopupConfirmation: false }).then(loadUser);
+    };
+    auth.signOut = function () {
+      esriId.destroyCredentials();
+      state.user = null;
+      state.serviceOk = null;
+      banner("");
+      $("f-name").value = "";
+      $("f-email").value = "";
+      updateAuthUI();
+      checkService();
+      toast("You\u2019ve been signed out.");
+    };
+
+    // Pick up an existing ArcGIS Online session silently (OAuth only).
+    if (CFG.oauthAppId) {
+      esriId.checkSignInStatus(SHARING).then(loadUser).catch(function () { /* not signed in */ });
+    }
     var GEOCODE_URL = CFG.apiKey
       ? "https://geocode-api.arcgis.com/arcgis/rest/services/World/GeocodeServer"
       : "https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer";
@@ -429,43 +551,58 @@
       var wait = (CFG.submitCooldownSeconds || 0) * 1000 - (Date.now() - last);
       if (wait > 0) { toast("Please wait " + Math.ceil(wait / 1000) + " seconds before sending another report.", true); return; }
 
-      if (state.serviceOk === false) {
-        toast("Online reporting isn't open yet, so this report can't be sent.", true);
+      if (state.serviceOk === false && !(state.authRequired && !state.user)) {
+        toast(banner_text(), true);
         return;
       }
 
-      var ref = makeRef();
       var btn = $("submit-btn");
       btn.disabled = true;
-      btn.textContent = "Sending…";
 
-      submitReport({
-        ReportID: ref,
-        Category: state.category,
-        Description: desc,
-        Status: "New",
-        Address: state.address.replace(/^Near /, ""),
-        ReporterName: $("f-name").value.trim(),
-        ReporterEmail: email,
-        ReporterPhone: $("f-phone").value.trim(),
-        SubmittedOn: true,
-        Source: "Web",
-        Latitude: state.point.latitude,
-        Longitude: state.point.longitude
-      }).then(function () {
-        localStorage.setItem(LAST_KEY, String(Date.now()));
-        showDone(ref, true);
+      // Sign in first if the layer is secured (called straight from the click so the popup isn't blocked).
+      var ready = state.authRequired && !state.user
+        ? (btn.textContent = "Signing in\u2026", auth.signIn())
+        : Promise.resolve();
+
+      ready.then(function () {
+        if (state.serviceOk === false) throw Object.assign(new Error("closed"), { closed: true });
+        btn.textContent = "Sending\u2026";
+        var ref = makeRef();
+        return submitReport({
+          ReportID: ref,
+          Category: state.category,
+          Description: desc,
+          Status: "New",
+          Address: state.address.replace(/^Near /, ""),
+          ReporterName: $("f-name").value.trim(),
+          ReporterEmail: $("f-email").value.trim(),
+          ReporterPhone: $("f-phone").value.trim(),
+          SubmittedOn: true,
+          Source: state.user ? "Web (" + state.user.username + ")" : "Web",
+          Latitude: state.point.latitude,
+          Longitude: state.point.longitude
+        }).then(function () {
+          localStorage.setItem(LAST_KEY, String(Date.now()));
+          showDone(ref, true);
+        });
       }).catch(function (err) {
         console.error("Submit failed", err);
-        var msg = err && (err.code === 499 || err.code === 498 || err.code === 403)
-          ? "Online reporting isn't open yet, so this report can't be sent."
-          : "Sorry, your report couldn't be sent. Please try again.";
+        var msg;
+        if (err && err.closed) msg = banner_text();
+        else if (err && (err.name === "identity-manager:user-aborted" || err.name === "AbortError" || /abort|cancel/i.test(err.message || "")))
+          msg = "Sign-in was cancelled. Your report hasn't been sent yet.";
+        else if (isPermissionError(err)) msg = MSG_NO_ACCESS;
+        else msg = "Sorry, your report couldn't be sent. Please try again.";
         toast(msg, true);
       }).then(function () {
         btn.disabled = false;
-        btn.textContent = "Submit report";
+        updateAuthUI();
       });
     });
+
+    function banner_text() {
+      return $("banner").textContent || MSG_CLOSED;
+    }
 
     function showDone(ref, save) {
       if (save) {
@@ -488,6 +625,10 @@
       state.point = null; state.address = ""; state.category = null;
       view.graphics.removeMany([pin, pinDot]);
       $("report-form").reset();
+      if (state.user) {
+        $("f-name").value = state.user.fullName || "";
+        $("f-email").value = state.user.email || "";
+      }
       document.querySelectorAll(".tile").forEach(function (t) { t.setAttribute("aria-checked", "false"); });
       $("location-card").classList.remove("set");
       $("loc-title").textContent = "No pin yet";
