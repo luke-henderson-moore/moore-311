@@ -20,6 +20,20 @@ async function open(name, viewport, mobile) {
 }
 const shot = (page, n) => page.screenshot({ path: path.join(outDir, `${n}.png`) });
 
+async function debugGraphics(page, tag) {
+  try {
+    const info = await page.evaluate(() => new Promise((resolve) => {
+      window.require(['esri/views/View'], (View) => {
+        const v = View.views && View.views.getItemAt(0);
+        if (!v) return resolve('no view');
+        const g = v.graphics.toArray().map((x) => ({ geom: x.geometry && x.geometry.toJSON(), sym: x.symbol && x.symbol.type, visible: x.visible }));
+        resolve(JSON.stringify({ ready: v.ready, updating: v.updating, sr: v.spatialReference.wkid, center: v.center.toJSON(), n: v.graphics.length, g }));
+      });
+    }));
+    log.push(`[debug ${tag}] ${info}`);
+  } catch (e) { log.push(`[debug ${tag}] error ${e.message}`); }
+}
+
 // Desktop flow
 {
   const { ctx, page } = await open('desktop', { width: 1440, height: 900 }, false);
@@ -27,7 +41,8 @@ const shot = (page, n) => page.screenshot({ path: path.join(outDir, `${n}.png`) 
   try {
     const box = await page.locator('#map').boundingBox();
     await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
-    await page.waitForTimeout(4000);
+    await page.waitForTimeout(6000);
+    await debugGraphics(page, 'after-click');
     await shot(page, 'desktop-2-pin');
     await page.click('#to-2');
     await page.waitForTimeout(600);
