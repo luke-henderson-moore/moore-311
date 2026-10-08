@@ -1,8 +1,9 @@
 [desktop] debug: Using ArcGIS Maps SDK for JavaScript 4.30 [Date: 20240724, Revision: ac51c09e]
 [desktop] warning: Reports layer not reachable anonymously: {code: 499, message: Token Required, messageCode: GWM_0003, details: Array(1)}
-[desktop] warning: [.WebGL-0x34b401c80600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
-[desktop] warning: [.WebGL-0x34b401c80600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
-[desktop] warning: [.WebGL-0x34b401c80600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
-[desktop] warning: [.WebGL-0x34b401c80600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
+[desktop] warning: [.WebGL-0x23dc01c7f800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[desktop] warning: [.WebGL-0x23dc01c7f800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[desktop] warning: [.WebGL-0x23dc01c7f800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[desktop] warning: [.WebGL-0x23dc01c7f800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
+[debug after-click] {"ready":true,"updating":false,"sr":102100,"center":{"spatialReference":{"latestWkid":3857,"wkid":102100},"x":-10774591.24998279,"y":5922052.970710983},"n":2,"g":[{"geom":{"spatialReference":{"wkid":4326},"x":-96.7898,"y":46.877199999999995},"sym":"simple-marker","visible":true},{"geom":{"spatialReference":{"wkid":4326},"x":-96.7898,"y":46.877199999999995},"sym":"simple-marker","visible":true}]}
 [mobile] debug: Using ArcGIS Maps SDK for JavaScript 4.30 [Date: 20240724, Revision: ac51c09e]
 [mobile] warning: Reports layer not reachable anonymously: {code: 499, message: Token Required, messageCode: GWM_0003, details: Array(1)}
