@@ -1,4 +1,5 @@
+[test] debug: Using ArcGIS Maps SDK for JavaScript 4.30 [Date: 20240724, Revision: ac51c09e]
+[test] warning: Reports layer not reachable anonymously: {code: 499, message: Token Required, messageCode: GWM_0003, details: Array(1)}
+[test] {"webgl":true,"layers":2}
 [desktop] debug: Using ArcGIS Maps SDK for JavaScript 4.30 [Date: 20240724, Revision: ac51c09e]
 [desktop] warning: Reports layer not reachable anonymously: {code: 499, message: Token Required, messageCode: GWM_0003, details: Array(1)}
-[mobile] debug: Using ArcGIS Maps SDK for JavaScript 4.30 [Date: 20240724, Revision: ac51c09e]
-[mobile] warning: Reports layer not reachable anonymously: {code: 499, message: Token Required, messageCode: GWM_0003, details: Array(1)}
