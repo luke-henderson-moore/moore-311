@@ -1,0 +1,52 @@
+name: Preview screenshots
+
+# Renders the app in headless Chromium and commits PNG screenshots to /screenshots.
+on:
+  push:
+    branches: [preview-screenshots]
+    paths-ignore: ['screenshots/**']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: preview-screenshots-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  shoot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Playwright + Chromium
+        run: |
+          mkdir -p /tmp/shot && cd /tmp/shot
+          npm init -y > /dev/null
+          npm install playwright@1.47.2
+          npx playwright install --with-deps chromium
+
+      - name: Serve site
+        run: |
+          python3 -m http.server 8080 > /tmp/server.log 2>&1 &
+          sleep 2
+
+      - name: Take screenshots
+        run: |
+          cp .github/scripts/shoot.mjs /tmp/shot/shoot.mjs
+          cd /tmp/shot && node shoot.mjs "$GITHUB_WORKSPACE/screenshots"
+
+      - name: Commit screenshots
+        run: |
+          git config user.name "preview-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add screenshots
+          git diff --cached --quiet && exit 0
+          git commit -m "Update preview screenshots [skip ci]"
+          git push
