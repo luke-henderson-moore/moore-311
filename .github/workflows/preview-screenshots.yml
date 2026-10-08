@@ -1,6 +1,6 @@
 name: Preview screenshots
 
-# Renders the app in headless Chromium and commits PNG screenshots to /screenshots.
+# Renders the app (code from main) in headless Chromium and commits PNG screenshots to /screenshots.
 on:
   push:
     branches: [preview-screenshots]
@@ -20,6 +20,12 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+
+      - name: Use app code from main
+        run: |
+          git fetch origin main --depth=1
+          git checkout FETCH_HEAD -- index.html css js oauth-callback.html assets
+          git reset -q
 
       - uses: actions/setup-node@v4
         with:
