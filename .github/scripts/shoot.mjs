@@ -22,6 +22,27 @@ async function open(name, viewport, mobile) {
 }
 const shot = (page, n) => page.screenshot({ path: path.join(outDir, `${n}.png`) });
 
+// Render test: add graphics directly (view SR + WGS84) and a GraphicsLayer.
+{
+  const { ctx, page } = await open('test', { width: 1000, height: 700 }, false);
+  const r = await page.evaluate(() => new Promise((resolve) => {
+    window.require(['esri/views/View', 'esri/Graphic', 'esri/layers/GraphicsLayer'], (View, Graphic, GraphicsLayer) => {
+      const v = View.views.getItemAt(0);
+      const c = v.center.clone();
+      v.graphics.add(new Graphic({ geometry: c, symbol: { type: 'simple-marker', color: 'blue', size: 40 } }));
+      const gl = new GraphicsLayer();
+      const c2 = c.clone(); c2.x += 800;
+      gl.add(new Graphic({ geometry: c2, symbol: { type: 'simple-marker', color: 'green', size: 40 } }));
+      v.map.add(gl);
+      resolve({ webgl: !!document.createElement('canvas').getContext('webgl2'), layers: v.map.allLayers.length });
+    });
+  }));
+  log.push('[test] ' + JSON.stringify(r));
+  await page.waitForTimeout(5000);
+  await shot(page, 'test-graphics');
+  await ctx.close();
+}
+
 // Desktop flow
 {
   const { ctx, page } = await open('desktop', { width: 1440, height: 900 }, false);
@@ -31,10 +52,6 @@ const shot = (page, n) => page.screenshot({ path: path.join(outDir, `${n}.png`) 
     await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
     await page.waitForTimeout(5000);
     await shot(page, 'desktop-2-pin');
-    await page.mouse.move(box.x + box.width / 2 + 100, box.y + 200);
-    await page.mouse.wheel(0, -300);
-    await page.waitForTimeout(5000);
-    await shot(page, 'desktop-2b-pin-zoom');
     await page.click('#to-2');
     await page.waitForTimeout(600);
     await page.click('.tile >> nth=0');
@@ -47,20 +64,6 @@ const shot = (page, n) => page.screenshot({ path: path.join(outDir, `${n}.png`) 
     await page.waitForTimeout(3000);
     await shot(page, 'desktop-5-submit');
   } catch (e) { log.push(`[desktop] flow: ${e.message}`); }
-  await ctx.close();
-}
-// Mobile
-{
-  const { ctx, page } = await open('mobile', { width: 390, height: 844 }, true);
-  await shot(page, 'mobile-1-start');
-  try {
-    const box = await page.locator('#map').boundingBox();
-    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
-    await page.waitForTimeout(4000);
-    await page.click('#to-2');
-    await page.waitForTimeout(600);
-    await shot(page, 'mobile-2-category');
-  } catch (e) { log.push(`[mobile] flow: ${e.message}`); }
   await ctx.close();
 }
 await browser.close();
