@@ -275,24 +275,33 @@
     });
     view.ui.move("zoom", "bottom-right");
 
-    var pinSvg =
-      '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="52" viewBox="0 0 40 52">' +
-      '<ellipse cx="20" cy="49" rx="7" ry="2.5" fill="rgba(0,0,0,.25)"/>' +
-      '<path d="M20 2C10.6 2 3 9.4 3 18.6 3 31 20 48 20 48s17-17 17-29.4C37 9.4 29.4 2 20 2z" fill="#c5221f" stroke="#fff" stroke-width="2.5"/>' +
-      '<circle cx="20" cy="18.5" r="6.5" fill="#fff"/></svg>';
+    // Map pin: red teardrop (tip on the point) + white centre dot.
     var pinSymbol = {
-      type: "picture-marker",
-      url: "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(pinSvg),
-      width: "34px",
-      height: "44px",
-      yoffset: "20px"
+      type: "simple-marker",
+      style: "path",
+      path: "M17 0C7.6 0 0 7.4 0 16.6 0 29 17 46 17 46S34 29 34 16.6C34 7.4 26.4 0 17 0z",
+      color: [197, 34, 31, 1],
+      outline: { color: [255, 255, 255, 1], width: 2 },
+      size: 40,
+      yoffset: 20
+    };
+    var pinDotSymbol = {
+      type: "simple-marker",
+      style: "circle",
+      color: [255, 255, 255, 1],
+      outline: null,
+      size: 10,
+      yoffset: 26
     };
     var pin = new Graphic({ symbol: pinSymbol });
+    var pinDot = new Graphic({ symbol: pinDotSymbol });
 
     function setPin(point, label) {
       state.point = point;
       pin.geometry = point;
-      if (!view.graphics.includes(pin)) view.graphics.add(pin);
+      pinDot.geometry = point;
+      view.graphics.removeMany([pin, pinDot]);
+      view.graphics.addMany([pin, pinDot]);
       $("loc-error").hidden = true;
       $("map-hint").classList.add("fade");
       var card = $("location-card");
@@ -477,7 +486,7 @@
 
     $("again-btn").addEventListener("click", function () {
       state.point = null; state.address = ""; state.category = null;
-      view.graphics.remove(pin);
+      view.graphics.removeMany([pin, pinDot]);
       $("report-form").reset();
       document.querySelectorAll(".tile").forEach(function (t) { t.setAttribute("aria-checked", "false"); });
       $("location-card").classList.remove("set");
