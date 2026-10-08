@@ -1,5 +1,5 @@
-[test] debug: Using ArcGIS Maps SDK for JavaScript 4.30 [Date: 20240724, Revision: ac51c09e]
-[test] warning: Reports layer not reachable anonymously: {code: 499, message: Token Required, messageCode: GWM_0003, details: Array(1)}
-[test] {"webgl":true,"layers":2}
 [desktop] debug: Using ArcGIS Maps SDK for JavaScript 4.30 [Date: 20240724, Revision: ac51c09e]
-[desktop] warning: Reports layer not reachable anonymously: {code: 499, message: Token Required, messageCode: GWM_0003, details: Array(1)}
+[probe load] {"signinBtnVisible":true,"submitText":"Sign in and submit","authNote":"You’ll be asked to sign in with your ArcGIS Online account to send this report.","banner":null,"identityDialog":false,"dialogText":null}
+[probe step3] {"signinBtnVisible":true,"submitText":"Sign in and submit","authNote":"You’ll be asked to sign in with your ArcGIS Online account to send this report.","banner":null,"identityDialog":false,"dialogText":null}
+[probe after-submit] {"signinBtnVisible":true,"submitText":"Signing in…","authNote":"You’ll be asked to sign in with your ArcGIS Online account to send this report.","banner":null,"identityDialog":true,"dialogText":"Sign in\nPlease sign in to access the item on ArcGIS Online (item)\nUsername:\nPassword:\nCancelOK"}
+[mobile] debug: Using ArcGIS Maps SDK for JavaScript 4.30 [Date: 20240724, Revision: ac51c09e]
