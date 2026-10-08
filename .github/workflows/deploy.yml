@@ -1,0 +1,63 @@
+name: Deploy to GitHub Pages
+
+# Syncs the Moore logo assets from the public moore-office-locations repo,
+# then publishes the site to GitHub Pages.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sync Moore logo assets
+        run: |
+          set -euo pipefail
+          SRC=https://raw.githubusercontent.com/luke-henderson-moore/moore-office-locations/main/assets
+          declare -A SHA=(
+            [favicon.svg]=668f6c18759d8f8f136eed9980cf14249537b268
+            [logo-1.svg]=e441b831949021f4b525ba197cc55431a733bbb2
+            [logo-2.svg]=592c2e55c15aec9be66d23c9eb8097386965dc04
+            [logo-3.svg]=582c2f0b31cc30d922d3bb29b56ee92876efb74b
+            [logo-4.svg]=0c17ef106a32a25d74460f9e81ce7bd400509ca3
+          )
+          mkdir -p assets
+          for f in "${!SHA[@]}"; do
+            if [ -f "assets/$f" ] && [ "$(git hash-object "assets/$f")" = "${SHA[$f]}" ]; then continue; fi
+            curl -fsSL "$SRC/$f" -o "assets/$f"
+            test "$(git hash-object "assets/$f")" = "${SHA[$f]}" || { echo "Checksum mismatch for $f"; exit 1; }
+            echo "Synced $f"
+          done
+          if [ -n "$(git status --porcelain assets)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add assets
+            git commit -m "Sync Moore logo assets [skip ci]"
+            git push
+          fi
+
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
