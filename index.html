@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Report a problem | Moore 311</title>
+  <meta name="description" content="Report a road problem such as a pothole, streetlight outage or damaged sign. Drop a pin on the map and tell us what's wrong." />
+  <meta name="theme-color" content="#004280" />
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="https://js.arcgis.com/4.30/esri/themes/light/main.css" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <a class="skip-link" href="#panel">Skip to report form</a>
+
+  <header class="topbar">
+    <a class="brand" href="https://www.mooreengineeringinc.com/" target="_blank" rel="noopener" aria-label="Moore Engineering, Inc. home">
+      <span class="brand-logo" role="img" aria-label="Moore Engineering, Inc. — a Vistal company">
+        <img src="assets/logo-1.svg" alt="" /><img src="assets/logo-2.svg" alt="" /><img src="assets/logo-3.svg" alt="" /><img src="assets/logo-4.svg" alt="" />
+      </span>
+    </a>
+    <div class="topbar-divider" aria-hidden="true"></div>
+    <h1 class="app-title"><span class="badge-311">311</span> <span id="app-title">Report a problem</span></h1>
+    <div class="topbar-actions">
+      <button id="my-reports-btn" class="btn-text" type="button">
+        My reports <span class="count-badge" id="my-count" hidden></span>
+      </button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="panel" id="panel" aria-label="Report a problem" tabindex="-1">
+      <div class="panel-handle" aria-hidden="true"><span></span></div>
+
+      <div class="banner" id="banner" role="alert" hidden></div>
+
+      <!-- Progress -->
+      <div class="progress" id="progress" aria-hidden="true">
+        <span class="dot" data-step="1"></span><span class="bar"></span>
+        <span class="dot" data-step="2"></span><span class="bar"></span>
+        <span class="dot" data-step="3"></span>
+      </div>
+
+      <!-- Step 1: Location -->
+      <section class="step" id="step-1" aria-labelledby="s1-title">
+        <p class="eyebrow">Step 1 of 3</p>
+        <h2 id="s1-title">Where is the problem?</h2>
+        <p class="lede">Tap the map to drop a pin on the road, or search for an address.</p>
+
+        <div id="search" class="search-host"></div>
+
+        <button type="button" class="btn-link" id="locate-btn">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8zm-1-7h2v3.06A8 8 0 0 1 19.94 11H23v2h-3.06A8 8 0 0 1 13 19.94V23h-2v-3.06A8 8 0 0 1 4.06 13H1v-2h3.06A8 8 0 0 1 11 4.06V1zm1 5a6 6 0 1 0 0 12 6 6 0 0 0 0-12z"/></svg>
+          Use my current location
+        </button>
+
+        <div class="location" id="location-card" aria-live="polite">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a7 7 0 0 1 7 7c0 5.25-7 13-7 13S5 14.25 5 9a7 7 0 0 1 7-7zm0 4.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z"/></svg>
+          <div>
+            <strong id="loc-title">No pin yet</strong>
+            <span id="loc-sub">Your pin will appear here.</span>
+          </div>
+        </div>
+        <p class="field-error" id="loc-error" hidden>Drop a pin on the map to continue.</p>
+
+        <div class="actions">
+          <button type="button" class="btn-primary" id="to-2">Continue</button>
+        </div>
+      </section>
+
+      <!-- Step 2: Category -->
+      <section class="step" id="step-2" aria-labelledby="s2-title" hidden>
+        <button type="button" class="back" data-goto="1">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11H7.8l5.6-5.6L12 4l-8 8 8 8 1.4-1.4L7.8 13H20v-2z"/></svg>Back
+        </button>
+        <p class="eyebrow">Step 2 of 3</p>
+        <h2 id="s2-title">What's the problem?</h2>
+        <div class="tiles" id="tiles" role="radiogroup" aria-labelledby="s2-title"></div>
+        <p class="field-error" id="cat-error" hidden>Choose the type of problem.</p>
+        <div class="actions">
+          <button type="button" class="btn-primary" id="to-3">Continue</button>
+        </div>
+      </section>
+
+      <!-- Step 3: Details -->
+      <section class="step" id="step-3" aria-labelledby="s3-title" hidden>
+        <button type="button" class="back" data-goto="2">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11H7.8l5.6-5.6L12 4l-8 8 8 8 1.4-1.4L7.8 13H20v-2z"/></svg>Back
+        </button>
+        <p class="eyebrow">Step 3 of 3</p>
+        <h2 id="s3-title">Tell us more</h2>
+
+        <div class="summary" id="summary"></div>
+
+        <form id="report-form" novalidate>
+          <div class="field">
+            <label for="f-desc">Describe the problem</label>
+            <p class="hint">For example, size of the pothole, which lane, or how long it's been there.</p>
+            <textarea id="f-desc" rows="4" maxlength="1000" required></textarea>
+            <p class="field-error" id="desc-error" hidden>Enter a short description.</p>
+          </div>
+
+          <fieldset class="contact">
+            <legend>Your details <span class="optional">(optional)</span></legend>
+            <p class="hint">Only used if we need to follow up about this report.</p>
+            <div class="field">
+              <label for="f-name">Name</label>
+              <input id="f-name" type="text" autocomplete="name" maxlength="100" />
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="f-email">Email</label>
+                <input id="f-email" type="email" autocomplete="email" maxlength="150" />
+                <p class="field-error" id="email-error" hidden>Enter a valid email address.</p>
+              </div>
+              <div class="field">
+                <label for="f-phone">Phone</label>
+                <input id="f-phone" type="tel" autocomplete="tel" maxlength="30" />
+              </div>
+            </div>
+          </fieldset>
+
+          <!-- Honeypot: hidden from people, filled by bots -->
+          <div class="hp" aria-hidden="true">
+            <label for="f-website">Website</label>
+            <input id="f-website" type="text" tabindex="-1" autocomplete="off" />
+          </div>
+
+          <div class="actions">
+            <button type="submit" class="btn-primary" id="submit-btn">Submit report</button>
+          </div>
+          <p class="fine">Don't use this form for emergencies. If someone is in danger, call 911.</p>
+        </form>
+      </section>
+
+      <!-- Done -->
+      <section class="step" id="step-done" aria-labelledby="done-title" hidden>
+        <div class="confirm">
+          <h2 id="done-title">Report submitted</h2>
+          <p>Your reference number</p>
+          <strong id="done-ref">—</strong>
+        </div>
+        <h3>What happens next</h3>
+        <p class="body">Our team will review your report and send it to the right crew. Keep your reference number if you need to contact us about it.</p>
+        <div class="actions">
+          <button type="button" class="btn-primary" id="again-btn">Report another problem</button>
+        </div>
+      </section>
+
+      <!-- My reports -->
+      <section class="step" id="step-mine" aria-labelledby="mine-title" hidden>
+        <button type="button" class="back" id="mine-back">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11H7.8l5.6-5.6L12 4l-8 8 8 8 1.4-1.4L7.8 13H20v-2z"/></svg>Back
+        </button>
+        <h2 id="mine-title">My reports</h2>
+        <p class="lede">Reports sent from this device.</p>
+        <ul class="mine" id="mine-list"></ul>
+      </section>
+
+      <footer class="panel-foot">
+        &copy; <span id="year"></span> Moore Engineering, Inc. &middot; Reports are stored in ArcGIS Online.
+      </footer>
+    </aside>
+
+    <section class="map-wrap" aria-label="Map. Tap to drop a pin.">
+      <div id="map"></div>
+      <div class="map-hint" id="map-hint">Tap the road to drop a pin</div>
+      <div class="loader" id="loader"><div class="spinner" aria-hidden="true"></div><p>Loading map&hellip;</p></div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="js/config.js"></script>
+  <script src="https://js.arcgis.com/4.30/"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
