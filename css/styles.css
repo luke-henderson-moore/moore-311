@@ -31,6 +31,7 @@ button, input, select, textarea { font: inherit; }
 button { cursor: pointer; }
 :focus-visible { outline: none; box-shadow: var(--focus); border-radius: 8px; }
 [hidden] { display: none !important; }
+h2[tabindex="-1"]:focus { box-shadow: none; outline: none; }
 .skip-link { position: absolute; left: 12px; top: -48px; z-index: 100; background: var(--moore-blue); color: #fff; padding: 8px 12px; border-radius: 8px; }
 .skip-link:focus { top: 12px; }
 
@@ -210,7 +211,7 @@ button { cursor: pointer; }
   .step { padding: 14px 20px 20px; }
   .step h2 { font-size: 24px; }
   .lede { margin-bottom: 14px; }
-  .banner { margin: 12px 20px 0; }
+  .banner { margin: 12px 20px 0; padding: 10px 12px; font-size: 13px; }
   .panel-foot { padding: 12px 20px; }
   .map-hint { top: 10px; font-size: 13px; padding: 7px 14px; }
 }
